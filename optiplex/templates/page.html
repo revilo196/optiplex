@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ReactionsOptiplex</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container-fluid">
+         <div class="row">
+         <div class="col-2">
+         <h2>IMPORT</h2>
+             <form action="clipboard_process" method="post" id="clipboard_form">
+                 <div class="form-floating">
+                     <textarea class="form-control" id="clipboard_input" name="clipboard" cols="20" rows="20" style="height:100%;"></textarea>
+                     <label  for="clipboard_input">paste here</label>
+                 </div>
+             </form>
+             <button onclick="sendClipboard()" class="btn btn-primary">Import</button>
+
+         </div>
+        <div class="col-4">
+            <h2>INPUTS</h2>
+            <form>
+            <table  class="table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-2">Moon Material</th>
+                    <th scope="col" class="col-1">Stock</th>
+                    <th scope="col" class="col-1">Usage</th>
+                </tr>
+            </thead>
+                <tbody>
+                {% for item in input_items %}
+                    <tr>
+                        <td>
+                            <img src=" {{  url_for('static', filename='items/' + item[3]) }}" alt="icon" width="32" height="32">
+                            <label for="{{ item[0] }}">{{ item[1] }}</label>
+                        </td>
+                    {% if item[2] == 1136 %}
+                        <td> </td>
+                    {% else %}
+                        <td><input type="number" name="{{ item[0] }}" id="{{ item[0] }}" class="form-control mat_input" value="0" onchange="updateStockValue()" >  </td>
+                    {% endif %}
+                        <td><input type="number" id="used_{{ item[0] }}" class="form-control" readonly>  </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+
+                <thead>
+                <tr>
+                    <th scope="col"></th>
+                    <th scope="col">Value Stock</th>
+                    <th scope="col">Value Usage</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td></td>
+                    <td ><div id="price_stock">0</div></td>
+                    <td ><div id="price_usage">0</div></td>
+                </tr>
+                </tbody>
+            </table>
+            </form>
+
+<div class="row">
+    <div class="col">
+    <button onclick="run_optimize()" class="btn btn-primary">Run</button>
+    </div>
+
+    <div class="col" id="spin_div">
+
+    </div>
+
+    <div class="col">
+        <select class="form-select" id="opti_methode">
+          <option selected value="value">optimize output value</option>
+          <option value="profit">optimize profit (output-input)</option>
+          <option value="total">optimize total value after reaction</option>
+          <option value="usage">optimize best input usage</option>
+    </select>
+    </div>
+    </div>
+
+        </div>
+
+        <div class="col-6">
+            <h2>OUTPUTS</h2>
+
+            <table  class="table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-2">Composite Material</th>
+                    <th scope="col" class="col-1">Reaction Runs</th>
+                    <th scope="col" class="col-1" >Product</th>
+                    <th scope="col" class="col-2">Value (1M ISK)</th>
+                </tr>
+            </thead>
+                <tbody>
+                {% for item in output_items %}
+                    <tr>
+                        <td>
+                            <img src=" {{  url_for('static', filename='items/' + item[3]) }}" alt="icon" width="32" height="32">
+                            <label for="{{ item[0] }}">{{ item[1] }}</label>
+                        </td>
+                        <td><input type="number" id="runs_{{ item[0] }}" class="form-control" readonly>  </td>
+                        <td><input type="number" id="product_{{ item[0] }}" class="form-control" readonly>   </td>
+                        <td><div id="value_{{ item[0] }}" style="width: 200px;" > </div> </td>
+                    </tr>
+                {% endfor %}
+                <tr></tr>
+                <tr>
+                    <th scope="col">Value Sum</th>
+                    <th scope="col"><div id="product_value"> </div></th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
+                </tr>
+                <tr>
+                    <th scope="col">Usage</th>
+                    <th scope="col"><div id="usage_p"> </div></th>
+                    <th scope="col"><div id="usage_str"> </div></th>
+                    <th scope="col"></th>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+<footer class="text-center text-lg-start bg-light text-muted">
+      <section
+    class="d-flex justify-content-center justify-content-lg-between p-4 border-bottom"
+  >
+    <!-- Left -->
+    <div class="me-5 d-none d-lg-block">
+      <span>Reactions Optimizer by Revilo Alter</span>
+    </div>
+      </section>
+</footer>
+
+
+</body>
+
+<script>
+
+    function collect_materials() {
+        let elements = document.getElementsByClassName("mat_input");
+         let tally = {};
+             for (let i = 0; i < elements.length; i++) {
+          let e = elements[i];
+            tally[e.id] = e.value;
+        }
+             return tally;
+    }
+
+    function updateStockValue() {
+    let formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'ISK' });
+
+    // elements is node list so we iterate like this
+    let materials = collect_materials();
+    const request = new Request("/process_value", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(materials)} )
+
+    fetch(request)
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (respjson) {
+            console.log(respjson);
+            let price = document.getElementById("price_stock");
+            price.innerText = formatter.format(respjson.value);
+        });
+
+    }
+
+function sendClipboard() {
+    let formElement = document.getElementById("clipboard_form");
+
+    fetch("/clipboard_process", {method: 'POST', body: new FormData(formElement)})
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (jsonResponse) {
+            console.log(jsonResponse);
+            for (let k in jsonResponse) {
+                let inbox = document.getElementById(k);
+                inbox.value = jsonResponse[k];
+            }
+            updateStockValue();
+        });
+
+    document.getElementById("clipboard_input").value='';
+}
+
+function run_optimize() {
+    let formatter_ISK = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'ISK' });
+    let formatter_NUM = new Intl.NumberFormat('de-DE');
+
+    document.getElementById("spin_div").innerHTML = "<div class='spinner-border' role='status'></div>"
+
+    let materials = collect_materials();
+    let methode = document.getElementById("opti_methode").value
+
+    let data = {'mats': materials, 'meth': methode};
+    const request = new Request("/optimize", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(data)} )
+
+    fetch(request)
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (respjson) {
+
+            document.getElementById("price_usage").innerText = formatter_ISK.format( respjson['costs']*1000000);
+            document.getElementById("product_value").innerText = formatter_ISK.format( respjson['price']*1000000);
+            let used =  respjson['num_used'];
+            let stock = respjson['num_stock'];
+            document.getElementById("usage_p").innerText = formatter_NUM.format(used/stock)
+            document.getElementById("usage_str").innerText = formatter_NUM.format(used) + "/" + formatter_NUM.format(stock)
+
+            for (let k in respjson['materials']) {
+                let key =  'used_' + k.toString();
+                document.getElementById(key).value = respjson['materials'][k];
+            }
+
+            for (let k in respjson['prices']) {
+                let key =  'value_' + k.toString();
+                document.getElementById(key).innerText = formatter_ISK.format(respjson['prices'][k]*1000000);
+            }
+
+            for (let k in respjson['product']) {
+                let key =  'product_' + k.toString();
+                document.getElementById(key).value = respjson['product'][k];
+            }
+
+            for (let k in respjson['runs']) {
+                let key =  'runs_' + k.toString();
+                document.getElementById(key).value = respjson['runs'][k];
+            }
+
+            document.getElementById("spin_div").innerHTML = ""
+            console.log(respjson);
+        });
+
+}
+
+</script>
+
+</html>

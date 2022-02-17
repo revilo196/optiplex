@@ -1,0 +1,5 @@
+include optiplex/create_tables.sql
+graft optiplex/static
+graft optiplex/import
+graft optiplex/templates
+global-exclude *.pyc
