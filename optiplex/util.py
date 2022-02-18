@@ -18,7 +18,7 @@ def fetch_prices(typeIDs, outputs, conn):
     conn.commit()
 
 
-def fetch_all_prices(conn_, reporter=None):
+def fetch_reactions_prices(conn_, reporter=None):
     # fetch Market data Jita for all Composite and Moon Mats not for Immidiat products
     if reporter is None:
         reporter = {}

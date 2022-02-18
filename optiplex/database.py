@@ -5,7 +5,7 @@ from flask import current_app, g
 from flask.cli import with_appcontext
 
 from .setup_db import load_groups, load_types, load_blueprints, load_icons
-from .util import fetch_all_prices
+from .util import fetch_reactions_prices
 
 
 def get_db():
@@ -36,7 +36,7 @@ def init_db():
     load_icons(db)
     load_types(db)
     load_blueprints(db)
-    fetch_all_prices(db)
+    fetch_reactions_prices(db)
 
 
 def init_app(app):

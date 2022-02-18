@@ -35,7 +35,7 @@
                 {% for item in input_items %}
                     <tr>
                         <td>
-                            <img src=" {{  url_for('static', filename='items/' + item[3]) }}" alt="icon" width="32" height="32">
+                            <img src=" {{  url_for('static', filename='Icons/items/' + item[3]) }}" alt="icon" width="32" height="32">
                             <label for="{{ item[0] }}">{{ item[1] }}</label>
                         </td>
                     {% if item[2] == 1136 %}
@@ -102,7 +102,7 @@
                 {% for item in output_items %}
                     <tr>
                         <td>
-                            <img src=" {{  url_for('static', filename='items/' + item[3]) }}" alt="icon" width="32" height="32">
+                            <img src=" {{  url_for('static', filename='Icons/items/' + item[3]) }}" alt="icon" width="32" height="32">
                             <label for="{{ item[0] }}">{{ item[1] }}</label>
                         </td>
                         <td><input type="number" id="runs_{{ item[0] }}" class="form-control" readonly>  </td>
