@@ -1,0 +1,20 @@
+version: '3.3'
+
+networks:
+  web:
+    external: true
+
+services:
+ optiplex:
+    image: optiplex:latest
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=80"
+      - "traefik.http.routers.optiplex.rule=Host(`optiplex.revwal.de`)"
+      - "traefik.http.routers.optiplex.entrypoints=websecure"
+      # Uncomment to enable HTTPS via ACME
+      - "traefik.http.routers.optiplex.tls.certresolver=myresolver"
+    ports:
+      - 5000:5000
+
