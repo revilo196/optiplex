@@ -26,7 +26,7 @@ def clipboard():
         db = get_db()
         mats = db.execute("SELECT id, name FROM typeIDs WHERE group_id=427").fetchall()
 
-        clip = list(csv.reader(text.replace(',', '').split('\n'), delimiter='\t'))
+        clip = list(csv.reader(text.replace(',', '').replace('*', '').split('\n'), delimiter='\t'))
         out = {}
         for entry in clip:
             name = entry[0]
