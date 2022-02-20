@@ -4,6 +4,7 @@ from pathlib import Path
 
 import_path = "import/sde/fsd/"
 
+
 def create_tables(con: sqlite3.Connection):
     c = con.cursor()
     with open("create_tables.sql") as f:
@@ -34,6 +35,16 @@ def load_icons(con: sqlite3.Connection):
         c.executemany('INSERT INTO icons VALUES(?,?);', icons)
 
 
+def load_graphics(con: sqlite3.Connection):
+    c = con.cursor()
+    with open(import_path + 'iconIDs.yaml', 'r') as file:
+        print("icons -- file_opened -- starting reading")
+        icons_db = yaml.load(file, Loader=yaml.CLoader)
+        print("done loading")
+        icons = [(i, Path(group['iconFile']).name) for (i, group) in icons_db.items()]
+        print("inserting to DB")
+        c.executemany('INSERT INTO icons VALUES(?,?);', icons)
+
 
 def load_types(con):
     c = con.cursor()
@@ -41,9 +52,14 @@ def load_types(con):
         print("types -- file_opened -- starting reading")
         types_db = yaml.load(file, Loader=yaml.CLoader)
         print("done loading")
-        types = [(i, ty['name']['en'], ty['groupID'], ty['iconID']) for (i, ty) in types_db.items() if 'en' in ty['name'] and 'iconID' in ty]
+        types = [(i, ty['name']['en'], ty['groupID']) for (i, ty) in types_db.items() if 'en' in ty['name']]
+        icons = [(ty['iconID'], i) for (i, ty) in types_db.items() if 'iconID' in ty]
+        graphics = [(ty['graphicID'], i) for (i, ty) in types_db.items() if 'graphicID' in ty]
+
         print("inserting to DB")
-        c.executemany('INSERT INTO typeIDs VALUES(?,?,?,?);', types)
+        c.executemany('INSERT INTO typeIDs (id, name, group_id)  VALUES(?,?,?);', types)
+        c.executemany('UPDATE typeIDs SET iconID = ?  WHERE typeIDs.id = ?', icons)
+        c.executemany('UPDATE typeIDs SET graphicID = ?  WHERE typeIDs.id = ?', graphics)
         con.commit()
 
 

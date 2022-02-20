@@ -28,7 +28,8 @@ create table typeIDs
 	name TEXT,
 	group_id int not null
 		references groupIDs,
-	iconID int
+	iconID int,
+    graphicID int
 );
 
 create unique index blueprints_id_uindex
@@ -36,9 +37,6 @@ create unique index blueprints_id_uindex
 
 create index typeIDs__name
 	on typeIDs (name);
-
-
-
 
 create table blueprints
 (
@@ -57,7 +55,7 @@ create table blueprint_materials
 	material_quantity int not null
 );
 
-create table prices
+create table market_prices
 (
 	typeID int not null
 		constraint prices_pk
@@ -68,8 +66,20 @@ create table prices
 );
 
 create unique index prices_typeID_uindex
-	on prices (typeID);
+	on market_prices (typeID);
 
 
+create table esi_prices
+(
+	typeID int
+		constraint esi_prices_pk
+			primary key
+		constraint esi_prices_typeIDs_id_fk
+			references typeIDs,
+	average_price int,
+	adjusted_price int
+);
 
+create unique index esi_prices_typeID_uindex
+	on esi_prices (typeID);
 

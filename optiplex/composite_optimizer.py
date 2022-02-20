@@ -44,10 +44,10 @@ def get_prices(typeids, conn, buy=False):
 
     if buy:
         for t in typeids:
-            prices.append(c.execute("SELECT buy FROM prices WHERE typeID==?", [t]).fetchone()[0] / 1000000)
+            prices.append(c.execute("SELECT buy FROM market_prices WHERE typeID==?", [t]).fetchone()[0] / 1000000)
     else:
         for t in typeids:
-            prices.append(c.execute("SELECT sell FROM prices WHERE typeID==?", [t]).fetchone()[0] / 1000000)
+            prices.append(c.execute("SELECT sell FROM market_prices WHERE typeID==?", [t]).fetchone()[0] / 1000000)
 
     return prices
 
@@ -70,7 +70,7 @@ class CompositeOptimizer:
                             WHERE group_id == 429;""").fetchall()
 
         self.lookup = {}
-        for (i, x) in enumerate(c.execute("SELECT id FROM typeIDs WHERE group_id == 427 OR group_id == 1136;")):
+        for (i, x) in enumerate(c.execute("SELECT id FROM typeIDs WHERE group_id == 427 OR group_id == 1136 AND id != 36945;")):
             self.lookup[x[0]] = i
 
         self.lookup_no_blocks = {}

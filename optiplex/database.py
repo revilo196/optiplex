@@ -4,8 +4,8 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
-from .setup_db import load_groups, load_types, load_blueprints, load_icons
-from .util import fetch_reactions_prices
+from .import_static import load_groups, load_types, load_blueprints, load_icons
+from .esi import fetch_reactions_prices
 
 
 def get_db():
@@ -26,6 +26,7 @@ def close_db(e=None):
         db.close()
 
 
+# create tables and load static data into table
 def init_db():
     db = get_db()
 
