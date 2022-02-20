@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from optiplex.composite_optimizer import CompositeOptimizer
 
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
@@ -31,5 +32,12 @@ def create_app(test_config=None):
 
     from . import database
     database.init_app(app)
+
+    from . import production
+    app.register_blueprint(production.bp)
+
+    from . import esi
+    with app.app_context():
+        esi.fetch_adjust_price(database.get_db())
 
     return app

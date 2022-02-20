@@ -49,7 +49,7 @@ def process_value():
 
         running_sum = 0
         for (k,v) in data.items():
-            value = db.execute("SELECT sell FROM prices WHERE typeID = ?", [int(k)]).fetchone()[0]
+            value = db.execute("SELECT sell FROM market_prices WHERE typeID = ?", [int(k)]).fetchone()[0]
             running_sum += int(v) * value
         return {'value': running_sum}
 
