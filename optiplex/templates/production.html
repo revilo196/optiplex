@@ -183,7 +183,6 @@
                 .then(response => response.json())
                 .then(function (blueprint) {
                     global = blueprint;
-                    document.getElementById("start").innerText = JSON.stringify(blueprint);
                 } ).then( update_view );
 
         }
