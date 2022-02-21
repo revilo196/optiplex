@@ -1,5 +1,6 @@
 import functools
-
+import sqlite3
+import csv
 
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
@@ -31,9 +32,18 @@ def todict(obj, classkey=None):
         return obj
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'POST'])
 def main():
-    return render_template('production.html')
+    db = get_db()
+
+    production_json = request.json
+    content = {}
+    if production_json is not None:
+        production = model.from_dict(production_json)
+        content['materials'] = decorate_type(production.collect_materials({}), db)
+        content['blueprints'] = decorate_type(production.collect_blueprints({}), db)
+
+    return render_template('production.html', content=content)
 
 
 @bp.route('/search', methods=['GET'])
@@ -62,8 +72,47 @@ def blueprint():
 
 @bp.route('/lookup', methods=['POST'])
 def lookup():
-    mat_id = int(request.args.get("id"))
+    mat_id = request.args.getlist("id")
     db = get_db()
     bpo = model.from_dict(request.json)
-    bpo.produce_material(db, mat_id)
+
+    if isinstance(mat_id, list):
+        for mid in mat_id:
+            bpo.produce_material(db, int(mid))
+
+
     return todict(bpo)
+
+
+@bp.route('/clipboard', methods=['POST'])
+def clipboard():
+    if request.method == 'POST':
+        text = request.json['data']
+
+        db = get_db()
+
+        clip = list(csv.reader(text.replace(',', '').replace('*', '').split('\n'), delimiter='\t'))
+        stock = {}
+        for entry in clip:
+            name = entry[0]
+            count = int(entry[1])
+
+            row = db.execute("SELECT id, name FROM typeIDs WHERE name LIKE ?", [name]).fetchone()
+            stock[row[0]] = {'id': row[0], 'name': row[1], 'count': count}
+
+        print(stock)
+        return stock
+
+    return {}
+
+
+def decorate_type(types, db: sqlite3.Connection):
+    t_list = []
+    for k in types:
+        name = db.execute("SELECT name FROM typeIDs WHERE id=?;", [k]).fetchone()[0]
+        icon = f"Type/{k}_64.png"
+        t_list.append({'id': k, 'name': name, 'num': types[k], 'icon': icon})
+
+    return t_list
+
+

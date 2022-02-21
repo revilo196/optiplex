@@ -42,13 +42,25 @@ class ProdBlueprint(object):
     def collect_materials(self, collected):
         for m in self.materials:
             if 'bp' in m:
-                collected = m['bp'].collect_materials()
+                collected = m['bp'].collect_materials(collected)
             else:
                 needed = int(math.ceil(m['num'] * self.runs * self.me))
-                if m['num'] not in collected:
-                    collected[m['num']] = 0
-                collected[m['num']] += needed
+                if m['id'] not in collected:
+                    collected[m['id']] = 0
+                collected[m['id']] += needed
 
+        return collected
+
+    def collect_blueprints(self, collected):
+
+        if self.id not in collected:
+            collected[self.id] = 0
+
+        collected[self.id] += self.runs
+
+        for m in self.materials:
+            if 'bp' in m:
+                collected = m['bp'].collect_blueprints(collected)
         return collected
 
 
@@ -61,23 +73,21 @@ def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1) 
                         INNER JOIN typeIDs bpID on bpID.id = blueprints.id
                         WHERE blueprints.id = ? ;""", [bp_id]).fetchone()
 
-    p = c.execute("""SELECT product_typeID,product_quantity, name ,group_id,filename, ep.adjusted_price FROM blueprints
+    p = c.execute("""SELECT product_typeID,product_quantity, name ,group_id, ep.adjusted_price FROM blueprints
                                 INNER JOIN typeIDs tID on tID.id = blueprints.product_typeID
-                                LEFT OUTER JOIN  icons i on tID.iconID = i.iconID
                                 INNER JOIN esi_prices ep on tID.id = ep.typeID
                                 WHERE blueprints.id=? ;""", [bp_id]).fetchone()
 
-    product = {'id': p[0], 'num': p[1], 'name': p[2], 'gid': p[3], 'icon': p[4], 'adju': p[5]}
+    product = {'id': p[0], 'num': p[1], 'name': p[2], 'gid': p[3], 'adju': p[4]}
 
-    mats = c.execute("""SELECT tID.id, group_id, material_quantity, name, filename, ep.adjusted_price FROM blueprint_materials
+    mats = c.execute("""SELECT tID.id, group_id, material_quantity, name, ep.adjusted_price FROM blueprint_materials
                         INNER JOIN typeIDs tID on tID.id == blueprint_materials.material_id
-                        INNER JOIN icons i on tID.iconID = i.iconID
                         INNER JOIN esi_prices ep on tID.id = ep.typeID
                         WHERE blueprint_id = ?;""", [bp_id]).fetchall()
 
     materials = []
     for m in mats:
-        m_obj = {'id': m[0], 'gid': m[1], 'num': m[2], 'name': m[3], 'icon': m[4], 'adju': m[5]}
+        m_obj = {'id': m[0], 'gid': m[1], 'num': m[2], 'name': m[3], 'adju': m[4]}
         materials.append(m_obj)
 
     return ProdBlueprint(bp[0], bp[1], product, materials, me, runs)
