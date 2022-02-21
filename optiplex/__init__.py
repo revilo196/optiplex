@@ -38,6 +38,9 @@ def create_app(test_config=None):
 
     from . import esi
     with app.app_context():
-        esi.fetch_adjust_price(database.get_db())
+        try:
+            esi.fetch_adjust_price(database.get_db())
+        except:
+            pass
 
     return app
