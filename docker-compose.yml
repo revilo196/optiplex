@@ -17,4 +17,5 @@ services:
       - "traefik.http.routers.optiplex.tls.certresolver=myresolver"
     ports:
       - 5000:5000
-
+    networks:
+      - web
