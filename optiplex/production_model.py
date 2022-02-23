@@ -9,7 +9,7 @@ def find_bp_from_product(db: sqlite3.Connection, p_id) -> int:
 
 class ProdBlueprint(object):
 
-    def __init__(self, bp_id: int, name: str, product, materials, me: float = 1.0, runs: int = 1):
+    def __init__(self, bp_id: int, name: str, product: dict, materials: list, me: float = 1.0, runs: int = 1):
         self.id = bp_id
         self.name = name
         self.product = product
@@ -39,31 +39,89 @@ class ProdBlueprint(object):
                 m_runs = int(math.ceil(needed / m['bp'].product['num']))
                 m['bp'].update_runs(m_runs)
 
-    def collect_materials(self, collected):
+    def update_vs_stock(self, stock: dict):
+        if self.runs > 0:
+            for m in self.materials:
+                if m['id'] in stock:
+                    needed = int(math.ceil(m['num'] * self.runs * self.me))
+                    r = stock[m['id']]['count'] - needed
+                    if r > 0:
+                        stock[m['id']]['count'] = r
+                        needed = 0  # or self.materials.remove(m)
+                    else:
+                        stock.pop(m['id'])  # or stock[m['id']] = 0
+                        needed = -r
+                    m['num'] = needed / (self.runs * self.me)  # reapply to number needed
+                    if 'bp' in m:
+                        m_runs = int(math.ceil(needed / m['bp'].product['num']))
+                        m['bp'].update_runs(m_runs)
+
+                if 'bp' in m:
+                    stock = m['bp'].update_vs_stock(stock)
+
+        return stock
+
+    def collect_materials(self, collected, i: int = 0):
         for m in self.materials:
             if 'bp' in m:
-                collected = m['bp'].collect_materials(collected)
+                collected = m['bp'].collect_materials(collected, i+1)
             else:
                 needed = int(math.ceil(m['num'] * self.runs * self.me))
                 if m['id'] not in collected:
-                    collected[m['id']] = 0
-                collected[m['id']] += needed
+                    collected[m['id']] = {'name': m['name'], 'id': m['id'], 'num': 0}
+                collected[m['id']]['num'] += needed
+                collected[m['id']]['depth'] = i
 
         return collected
 
-    def collect_blueprints(self, collected):
+    def collect_blueprints(self, collected, i: int = 0):
 
         if self.id not in collected:
-            collected[self.id] = 0
+            collected[self.id] = {'name': self.name, 'runs': 0, 'id': self.id}
 
-        collected[self.id] += self.runs
+        collected[self.id]['runs'] += self.runs
+        collected[self.id]['depth'] = i
 
         for m in self.materials:
             if 'bp' in m:
-                collected = m['bp'].collect_blueprints(collected)
+                collected = m['bp'].collect_blueprints(collected, i+1)
         return collected
 
+    def collect_materials_steps(self, i: int = 0):
+        # list of collected values
+        collected = []
+        # dict used to sum values with same id from the same depth
+        depth = {}
+        for m in self.materials:
+            if 'bp' in m:
+                sub = m['bp'].collect_materials(i + 1)
+                # sum 'num' with the same id from the same depth
+                for s in sub:
+                    if s['depth'] not in depth:
+                        depth[s['depth']] = {}
+                    if s['id'] not in depth[s['depth']]:
+                        depth[s['depth']][s['id']] = s
+                    else:
+                        depth[s['depth']][s['id']]['num'] += s['num']
 
+            else:
+                needed = int(math.ceil(m['num'] * self.runs * self.me))
+                collected.append({'id': m['id'], 'name': m['name'], 'num': needed, 'depth': i})
+
+        # collect summarized values from bellow
+        for d in depth.values():
+            for mat in d.values():
+                collected.append(mat)
+
+        return collected
+
+    def collect_blueprints_steps(self, i: int = 0):
+        collected = [{'id': self.id, 'name': self.name, 'runs': self.runs, 'depth': i}]
+        i += 1
+        for m in self.materials:
+            if 'bp' in m:
+                collected = collected + m['bp'].collect_blueprints(i)
+        return collected
 
 
 def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1) -> ProdBlueprint:
