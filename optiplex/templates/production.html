@@ -14,8 +14,10 @@
             </div>
             <div class="col-4"> 
                 <div class="row">
+                    <div class="col"> <label class="col-form-label">Runs:</label>  </div>
+                    <div class="col"> <input type="number" id="bp_runs" class="form-control" value="1"></div>
                     <div class="col"> <label class="col-form-label">ME Level:</label>  </div>
-                    <div class="col"> <input type="number" id="bp_me" class="form-control"></div>
+                    <div class="col"> <input type="number" id="bp_me" class="form-control" value="0">  </div>
                 </div>  
             </div>
         </div>
@@ -30,9 +32,9 @@
                  {% for bp in content['blueprints'] %}
 
                     <div class="row">
-                        <div class="col-2"><img src="https://image.eveonline.com/{{ bp['icon'] }}" width="32" height="32" ></div>
+                        <div class="col-2"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
                         <div class="col-5"> {{ bp['name'] }} </div>
-                        <div class="col-5">  X  {{ bp['num'] }} </div>
+                        <div class="col-5">  X  {{ bp['runs'] }} </div>
                     </div>
 
                  {% endfor %}
@@ -44,12 +46,17 @@
                         <div class="row">
                             {% if 'materials' in  content %}
                              {% for mat in content['materials'] %}
-
-                            <div class="col-6"> <div class="hover p-1 m-1 rounded-3" id="mat_{{ mat['id'] }}" data-value={{ mat['id'] }} onclick="select('mat_{{ mat['id'] }}')">
-                                <img src="https://image.eveonline.com/{{mat['icon']}}" width="48" height="48">
-                                {{ mat['name'] }} x {{ mat['num'] }}  </div>
-                            </div>
-
+                                    {% if mat['num'] >  0 %}
+                                        <div class="col-6"> <div class="hover p-1 m-1 rounded-3" id="mat_{{ mat['id'] }}" data-value="{{ mat['id'] }}" onclick="select('mat_{{ mat['id'] }}')">
+                                            <img src="https://image.eveonline.com/Type/{{mat['id']}}_64.png" width="32" height="32">
+                                            {{ mat['name'] }} x {{ mat['num'] }}  </div>
+                                        </div>
+                                     {% else %}
+                                       <div class="col-6"> <div class="fulfilled p-1 m-1 rounded-3" id="mat_{{ mat['id'] }}" data-value="{{ mat['id'] }}" onclick="select('mat_{{ mat['id'] }}')">
+                                            <img src="https://image.eveonline.com/Type/{{mat['id']}}_64.png" width="32" height="32">
+                                            {{ mat['name'] }} x {{ mat['num'] }}  </div>
+                                        </div>
+                                {% endif %}
                              {% endfor %}
                              {% endif %}
 
@@ -61,9 +68,10 @@
                             </div>
 
                         <div class="row mt-auto mb-3">
-                            <div class="col-2"><input type="number" id="mat_me" class="form-control"></div>
-
+                            <div class="col-2"><input type="number" id="mat_me" class="form-control" value="10"></div>
                            <div class="col-6"> <button class="btn btn-primary w-100" onclick="lookup()" >Add Production</button></div>
+                            <div class="col-4"> <button class="btn btn-primary w-100" onclick="reload_page()" >Update</button></div>
+
                         </div>
                     </div>
                 </div>
@@ -73,13 +81,22 @@
                     <div class="row"><div class="col">
                     <div class="container-fluid" id="stock_content">
 
+                        {% if session['stock'] %}
+                            {% for k, item in session['stock'].items() %}
+                                    <div class='row' style='height: 3.3em'> <div class='col-2 align-items-center' >
+                                        <img class='stockImage' src="https://image.eveonline.com/Type/{{ item['id']}}_64.png" width='32' height='32' ></div>
+                                        <div class='col-6 stockName align-items-center'>{{ item['name'] }}</div>
+                                        <div class='col-4 stockCount align-items-center'>{{ item['count'] }}</div>
+                                    </div>
+                            {% endfor %}
+                        {% endif %}
 
                     </div></div></div>
                 
                 <div class="row mt-auto mb-3">
                     <div class="col-12"><textarea name="text" id="clipboard" class="form-control"></textarea></div>
                    <div class="col-6"> <button class="btn btn-primary w-100" onclick="importClip()" >Add/Import</button></div>
-                   <div class="col-6">  <button class="btn btn-primary w-100" >Reset</button></div>
+                   <div class="col-6">  <button class="btn btn-primary w-100" onclick="reset_stock()" >Reset</button></div>
                 </div>
                 </div>
              </div>
@@ -88,104 +105,86 @@
 
 </main>
     <script>
-    var global = {};
 
     function importClip() {
-
-        let rowTxt = "<div><div class='row' style='height: 3.3em'> <div class='col-2 align-items-center' >"+
-                     "<img class='stockImage' src='#' width='32' height='32' ></div> "+
-                     "<div class='col-6 stockName align-items-center'>Isogen</div>"+
-                     "<div class='col-4 stockCount align-items-center'>300000</div></div></div>"
         
-        let parser = new DOMParser();
         let clipboard = document.getElementById("clipboard").value
-        let obj = {'data': clipboard}
+        let obj = {'data': clipboard};
 
         const request = new Request("clipboard", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(obj)});
         fetch(request)
             .then(response => response.json())
             .then(function (items) {
                 console.log(items);
-                for (let k in items) {
-                    let rowElm = parser.parseFromString( rowTxt, 'text/html' );
-                    console.log(items[k]);
-                    rowElm.getElementsByClassName("stockImage")[0].src = "https://image.eveonline.com/Type/"+ items[k]['id'] + "_32.png"
-                    rowElm.getElementsByClassName("stockName")[0].innerHTML = items[k]['name'];
-                    rowElm.getElementsByClassName("stockCount")[0].innerHTML = items[k]['count'];
-                    rowElm.getElementsByClassName("stockCount")[0].id = "stock_" + items[k]['id'];
-                    document.getElementById('stock_content').appendChild(rowElm.firstChild);
-                }
+                document.getElementById("clipboard").value = "";
+                reload_page();
             });
-
 
     }
 
+    // select functions
+    function select(i) {
+        if (document.getElementById(i).classList.contains("select_mat")) {
+            document.getElementById(i).classList.remove("select_mat");
+        } else {
+            document.getElementById(i).classList.add("select_mat");
+        }
+    }
 
-        function select(i) {
-            if (document.getElementById(i).classList.contains("select_mat")) {
-                document.getElementById(i).classList.remove("select_mat");
-            } else {
-                document.getElementById(i).classList.add("select_mat");
-            }
+    function update() {
+        let list = document.getElementById('datalistOptions');
+        let search = document.getElementById('exampleDataList').value;
+        list.innerHTML = '';
+        fetch("search?s=" + search)
+            .then(response => response.json())
+            .then(function (data) {
+                for (let k in data) {
+                    let option = document.createElement('option')
+                    option.value = data[k];
+                    option['bp_id'] = k;
+                    list.appendChild(option);
+                }
+            } );
+    }
+
+    function start() {
+        let select = document.getElementById("datalistOptions")
+
+        let params = new URLSearchParams();
+        params.append('id', select.children[0].bp_id.toString())
+        params.append('runs', document.getElementById('bp_runs').value)
+        params.append('me', document.getElementById('bp_me').value)
+
+        console.log(select.children[0].bp_id)
+        fetch("blueprint?" + params.toString() )
+            .then(reload_page);
+    }
+
+
+
+    function lookup() {
+        let elems = document.getElementsByClassName('select_mat')
+        let params = new URLSearchParams();
+        console.log(elems);
+        for (let i = 0; i < elems.length; i++) {
+            console.log(elems[i])
+            params.append('id', elems[i].dataset.value.toString())
         }
 
-        function update() {
-            let list = document.getElementById('datalistOptions');
-            let search = document.getElementById('exampleDataList').value;
-            list.innerHTML = '';
-            fetch("search?s=" + search)
-                .then(response => response.json())
-                .then(function (data) {
-                    for (let k in data) {
-                        let option = document.createElement('option')
-                        option.value = data[k];
-                        option['bp_id'] = k;
-                        list.appendChild(option);
-                    }
-                } );
-        }
+        params.append('me', document.getElementById('mat_me').value)
+        fetch("lookup?" + params.toString())
+            .then(reload_page);
 
-        function start() {
-            let select = document.getElementById("datalistOptions")
-            console.log(select.children[0].bp_id)
-            fetch("blueprint?id=" + select.children[0].bp_id.toString())
-                .then(response => response.json())
-                .then(function (blueprint) {
-                    global = blueprint;
-                }).then(update_view);
+    }
 
-        }
+    function reload_page() {
+        window.location.href = "{{ url_for('.prod') }}";  // reload updated page
+    }
 
-        function update_view(){
-              const request = new Request("#", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(global)});
-                    fetch(request)
-                        .then(response => response.text())
-                        .then(function (page) {
-                            let parser = new DOMParser();
-                            let doc = parser.parseFromString( page, 'text/html' );
-                            document.getElementById("production_content").innerHTML = doc.getElementById("production_content").innerHTML;
-                            document.getElementById("blueprints_content").innerHTML = doc.getElementById("blueprints_content").innerHTML;
-                        });
-        }
+    function reset_stock() {
+        fetch( "{{ url_for('.clipboard') }}", {method: 'DELETE'}).then(reload_page)
+    }
 
-        function lookup() {
-            let elems = document.getElementsByClassName('select_mat')
-            let params = new URLSearchParams();
-            console.log(elems);
-            for (let i = 0; i < elems.length; i++) {
-                console.log(elems[i])
-                params.append('id', elems[i].dataset.value.toString())
-            }
-
-           const request = new Request("lookup?" + params.toString(), {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(global)})
-
-            fetch(request)
-                .then(response => response.json())
-                .then(function (blueprint) {
-                    global = blueprint;
-                } ).then( update_view );
-
-        }
 
 </script>
 {% endblock %}
