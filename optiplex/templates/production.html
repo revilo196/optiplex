@@ -27,18 +27,24 @@
         <div class="container-fluid">
         <div class="row">
              <div class="col-3" id="blueprints_content">
-                <h2> Blueprints </h2>
-                 {% if 'blueprints' in  content %}
-                 {% for bp in content['blueprints'] %}
+                 <div class="container-fluid d-flex flex-column h-100">
+                    <h2> Blueprints </h2>
+                     {% if 'blueprints' in  content %}
+                     {% for bp in content['blueprints'] %}
 
-                    <div class="row">
-                        <div class="col-2"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
-                        <div class="col-5"> {{ bp['name'] }} </div>
-                        <div class="col-5">  X  {{ bp['runs'] }} </div>
-                    </div>
+                        <div class="row">
+                            <div class="col-2"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
+                            <div class="col-5"> {{ bp['name'] }} </div>
+                            <div class="col-5">  X  {{ bp['runs'] }} </div>
+                        </div>
 
-                 {% endfor %}
-                 {% endif %}
+                     {% endfor %}
+                     {% endif %}
+
+                 <div class="row mt-auto mb-3">
+                      <div class="col-6"> <button class="btn btn-primary w-100" onclick="save()" >Save</button></div>
+                 </div>
+                </div>
              </div>
                 <div class="col-6" id="production_content">
                     <div class="container-fluid d-flex flex-column h-100">
@@ -183,6 +189,30 @@
 
     function reset_stock() {
         fetch( "{{ url_for('.clipboard') }}", {method: 'DELETE'}).then(reload_page)
+    }
+    
+    function close_modal() {
+        document.querySelector('.modal').remove()
+    }
+    
+    function save() {
+        fetch("{{ url_for('.blueprint_save') }}")
+            .then(response => response.text())
+            .then(function (result) {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString( result, 'text/html' );
+                let div = document.createElement('div')
+                div.innerHTML = doc.getElementById('model-request-cont').innerHTML;
+                let newscript = div.getElementsByTagName("script")[0]
+                document.body.appendChild(div)
+                document.head.appendChild(newscript);
+                eval(newscript.innerText);
+                document.querySelector('.modal-success-btn').onclick = close_modal
+                let modal = new bootstrap.Modal(document.getElementById('modal-dialog'));
+                modal.show();
+
+            })
+
     }
 
 

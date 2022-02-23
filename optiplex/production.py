@@ -1,6 +1,9 @@
 import copy
 import csv
-
+import pickle
+import base64
+import zlib
+import hashlib
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
@@ -54,6 +57,37 @@ def blueprint():
     bpo = model.from_db(db, bp_id, me, runs)
     session['production'] = bpo
     return {}
+
+
+@bp.route('/blueprint/save', methods=['GET'])
+def blueprint_save():
+    db = get_db()
+    pickle_production = pickle.dumps(session['production'])
+    pickle_production_compressed = zlib.compress(pickle_production)
+    prod_hash = hashlib.sha1(pickle_production_compressed).digest()[:7]
+    key = int.from_bytes(prod_hash, byteorder='big')
+    url_code = base64.urlsafe_b64encode(prod_hash)
+
+    db.execute("REPLACE INTO stored_production VALUES (?,?)", [key, pickle_production_compressed])
+    db.commit()
+
+    return render_template('modal_saved.html', url_code_str=url_code.decode('utf-8'))
+
+
+@bp.route('/blueprint/load', methods=['GET'])
+def blueprint_load():
+    db = get_db()
+
+    url_code = request.args.get("p")
+    prod_hash = base64.urlsafe_b64decode(url_code)
+    key = int.from_bytes(prod_hash, byteorder='big')
+
+    compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
+    pickled = zlib.decompress(compressed)
+    production = pickle.loads(pickled)
+    session['production'] = production
+
+    return render_template('redirect.html', url=url_for('.prod'))
 
 
 @bp.route('/lookup', methods=['GET'])

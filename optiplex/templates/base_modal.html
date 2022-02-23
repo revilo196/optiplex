@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}  Modal  {% endblock %}
+
+{% block content %}
+<div id="model-request-cont">
+    <div class="modal" tabindex="-1" id="modal-dialog">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">  {% block titlemodal %}{% endblock %} </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            {% block contentmodal %}  {% endblock %}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-success-btn" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+    <script>
+
+        document.onreadystatechange = function () {
+            var myModal = new bootstrap.Modal(document.getElementById("modal-dialog"), {});
+            myModal.show();
+        };
+    </script>
+ {% endblock %}

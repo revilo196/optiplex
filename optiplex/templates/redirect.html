@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}  Redirecting {% endblock %}
+
+{% block content %}
+
+    <h1>Redirecting...</h1>
+    <script>
+        let link = window.location.origin + "{{ url }}";
+        window.location= link
+    </script>
+
+{% endblock %}

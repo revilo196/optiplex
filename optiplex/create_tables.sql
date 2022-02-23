@@ -83,3 +83,10 @@ create table esi_prices
 create unique index esi_prices_typeID_uindex
 	on esi_prices (typeID);
 
+create table stored_production
+(
+	key int not null
+		constraint stored_production_pk
+			primary key,
+	object BLOB not null
+);
