@@ -53,7 +53,7 @@ def blueprint():
     db = get_db()
     bpo = model.from_db(db, bp_id, me, runs)
     session['production'] = bpo
-    return redirect(url_for('.prod'))
+    return {}
 
 
 @bp.route('/lookup', methods=['GET'])
@@ -67,7 +67,7 @@ def lookup():
         bpo.produce_material(db, int(mid), me=me)
 
     session['production'] = bpo
-    return redirect(url_for('.prod'))
+    return {}
 
 
 @bp.route('/clipboard', methods=['POST', 'DELETE'])
