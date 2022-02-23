@@ -1,14 +1,20 @@
 import os
+import redis
 from flask import Flask
 from optiplex.composite_optimizer import CompositeOptimizer
+from flask_session import Session
 
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
         DATABASE=os.path.join(app.instance_path, 'eve.sqlite'),
+        SESSION_TYPE='redis',
+        SESSION_PERMANENT=True,
+        SESSION_USE_SIGNER=True,
+        SESSION_REDIS=redis.Redis(host=os.environ.get("REDIS_HOST"), port=6379)
     )
 
     if test_config is None:
@@ -32,6 +38,9 @@ def create_app(test_config=None):
 
     from . import database
     database.init_app(app)
+
+    # setup session redis db
+    Session(app)
 
     from . import production
     app.register_blueprint(production.bp)

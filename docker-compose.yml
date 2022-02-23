@@ -3,6 +3,8 @@ version: '3.3'
 networks:
   web:
     external: true
+  internal:
+    external: false
 
 services:
  optiplex:
@@ -17,5 +19,15 @@ services:
       - "traefik.http.routers.optiplex.tls.certresolver=myresolver"
     ports:
       - 5000:5000
+    environment:
+      - REDIS_HOST=redis_db
+      - SECRET_KEY=dev
     networks:
       - web
+      - internal
+
+ redis_db:
+    image: redis:latest
+    restart: always
+    networks:
+     - internal
