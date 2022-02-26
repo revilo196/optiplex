@@ -7,7 +7,7 @@
     <p onload="set_link()"> use this link to load the production</p>
     <script>
     function set_link() {
-        let link = window.location.origin + "{{ url_for('.blueprint_load') }}?p={{ url_code_str }}";
+        let link = window.location.origin + "{{ url_for('.blueprint_load') }}?{{ url_code_str }}";
         document.getElementById("store_link").value = link;
     }
     set_link();

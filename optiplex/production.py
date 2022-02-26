@@ -5,7 +5,7 @@ import base64
 import zlib
 import hashlib
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Blueprint, flash, g, redirect, render_template, request, session, url_for, abort
 )
 
 from optiplex.database import get_db
@@ -13,6 +13,17 @@ import optiplex.production_model as model
 
 bp = Blueprint('production', __name__, url_prefix='/production')
 
+
+def b64url_to_key(url_code):
+    prod_hash = base64.urlsafe_b64decode(url_code)
+    key = int.from_bytes(prod_hash, byteorder='big')
+    return key
+
+
+def hash_to_b64url(hash_bytes):
+    # key = int.from_bytes(hash_bytes[:7], byteorder='big')
+    url_code = base64.urlsafe_b64encode(hash_bytes[:7])
+    return url_code
 
 @bp.route('/', methods=['GET'])
 def prod():
@@ -71,21 +82,30 @@ def blueprint_save():
     db.execute("REPLACE INTO stored_production VALUES (?,?)", [key, pickle_production_compressed])
     db.commit()
 
-    return render_template('modal_saved.html', url_code_str=url_code.decode('utf-8'))
+    return render_template('modal_saved.html', url_code_str="p="+url_code.decode('utf-8'))
 
 
-@bp.route('/blueprint/load', methods=['GET'])
+@bp.route('/load', methods=['GET'])
 def blueprint_load():
     db = get_db()
 
-    url_code = request.args.get("p")
-    prod_hash = base64.urlsafe_b64decode(url_code)
-    key = int.from_bytes(prod_hash, byteorder='big')
+    if 'p' in request.args:
+        url_code = request.args.get("p")
+        key = b64url_to_key(url_code)
 
-    compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
-    pickled = zlib.decompress(compressed)
-    production = pickle.loads(pickled)
-    session['production'] = production
+        compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
+        pickled = zlib.decompress(compressed)
+        production = pickle.loads(pickled)
+        session['production'] = production
+
+    if 's' in request.args:
+        url_code = request.args.get("s")
+        key = b64url_to_key(url_code)
+
+        compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
+        pickled = zlib.decompress(compressed)
+        stock = pickle.loads(pickled)
+        session['stock'] = stock
 
     return render_template('redirect.html', url=url_for('.prod'))
 
@@ -104,7 +124,7 @@ def lookup():
     return {}
 
 
-@bp.route('/clipboard', methods=['POST', 'DELETE'])
+@bp.route('/stock', methods=['POST', 'DELETE'])
 def clipboard():
     if request.method == 'POST':
         text = request.json['data']
@@ -135,3 +155,50 @@ def clipboard():
 
     return {}
 
+
+@bp.route('/stock/save', methods=['GET'])
+def clipboard_save():
+    db = get_db()
+    pickle_stock = pickle.dumps(session['stock'])
+    pickle_stock_compressed = zlib.compress(pickle_stock)
+    prod_hash = hashlib.sha1(pickle_stock_compressed).digest()[:7]
+    key = int.from_bytes(prod_hash, byteorder='big')
+    url_code = base64.urlsafe_b64encode(prod_hash)
+
+    db.execute("REPLACE INTO stored_production VALUES (?,?)", [key, pickle_stock_compressed])
+    db.commit()
+
+    return render_template('modal_saved.html', url_code_str="s="+url_code.decode('utf-8'))
+
+
+@bp.route('/admin/save_example', methods=['GET'])
+def admin_example():
+
+    if 'key' in request.args:
+        if request.args['key'] != 'some_admin_key':
+            return abort(403)
+
+        db = get_db()
+
+        if 'p' in request.args:
+            # save p as example key
+            url_code = request.args.get("p")
+            key = b64url_to_key(url_code)
+            compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
+            key_example = b64url_to_key("PrdExample==".encode('UTF-8'))
+            db.execute("REPLACE INTO stored_production VALUES (?,?)", [key_example, compressed])
+            db.commit()
+
+        if 's' in request.args:
+            # save p as example key
+            url_code = request.args.get("s")
+            key = b64url_to_key(url_code)
+            compressed = db.execute("SELECT object FROM stored_production WHERE key == ?", [key]).fetchone()[0]
+
+            key_example = b64url_to_key("StoExample==".encode('UTF-8'))
+            db.execute("REPLACE INTO stored_production VALUES (?,?)", [key_example, compressed])
+            db.commit()
+
+        return "OK"
+
+    return abort(403)

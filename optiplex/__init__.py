@@ -45,6 +45,9 @@ def create_app(test_config=None):
     from . import production
     app.register_blueprint(production.bp)
 
+    from . import reactions
+    app.register_blueprint(reactions.bp)
+
     from . import esi
     with app.app_context():
         try:

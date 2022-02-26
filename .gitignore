@@ -1,7 +1,7 @@
 ## -- Project ignoes: 
 
 #imported from https://developers.eveonline.com/resource
-optiplex/import/*
+optiplex/import/sde/*
 optiplex/static/Icons
 
 instance/

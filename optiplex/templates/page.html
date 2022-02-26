@@ -141,7 +141,7 @@
 
     // elements is node list so we iterate like this
     let materials = collect_materials();
-    const request = new Request("/process_value", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(materials)} )
+    const request = new Request("{{ url_for('.process_value') }}", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(materials)} )
 
     fetch(request)
         .then(function (response) {
@@ -158,7 +158,7 @@
 function sendClipboard() {
     let formElement = document.getElementById("clipboard_form");
 
-    fetch("/clipboard_process", {method: 'POST', body: new FormData(formElement)})
+    fetch("{{ url_for('.clipboard') }}", {method: 'POST', body: new FormData(formElement)})
         .then(function (response) {
             return response.json();
         })
@@ -184,7 +184,7 @@ function run_optimize() {
     let methode = document.getElementById("opti_methode").value
 
     let data = {'mats': materials, 'meth': methode};
-    const request = new Request("/optimize", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(data)} )
+    const request = new Request("{{ url_for('.optimize') }}", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(data)} )
 
     fetch(request)
         .then(function (response) {
@@ -224,6 +224,20 @@ function run_optimize() {
         });
 
 }
+
+    function example() {
+        let example_str = "QXRtb3NwaGVyaWMgR2FzZXMJNzYzMjUKQ2FkbWl1bQk4OTA5CkNhZXNpdW0JODAwCkNocm9taXVtCTgxNzQKQ29iYWx0CTE0MjgxCkR5c3Byb3NpdW0JMzg5MQpFdmFwb3JpdGUgRGVwb3NpdHMJMjYwMzIKSGFmbml1bQk3Mjk1MApIeWRyb2NhcmJvbnMJNzAyNDkKTWVyY3VyeQkxOTY0Ck5lb2R5bWl1bQk0MDY2ClBsYXRpbnVtCTY3NTkKUHJvbWV0aGl1bQkxMjc0MApTY2FuZGl1bQkzNDE3MgpTaWxpY2F0ZXMJMzExNzYKVGVjaG5ldGl1bQkyMDAKVGh1bGl1bQkzMDM1ClRpdGFuaXVtCTEyMDYzClR1bmdzdGVuCTY0NzkKVmFuYWRpdW0JNjY5"
+        example_str = atob(example_str);
+        document.getElementById("clipboard_input").value= example_str
+        sendClipboard();
+        setTimeout(() => {  run_optimize(); }, 5000);
+    }
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    if (urlParams.has('example')) {
+        example();
+    }
 
 </script>
 {% endblock %}
