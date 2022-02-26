@@ -11,6 +11,10 @@ run the command `flask init-db` to convert the downloaded data into sqlite and p
 
 start to start n basic redis server using docker `docker run --name optiplex-redis -p 6379:6379 -d redis`
 
+### Environment:
+    - REDIS_HOST=redis_db
+    - SECRET_KEY=dev
+
 ## Deployment \[WIP\]:
  for now only development deployment without proper server.
  just build the docker like this:

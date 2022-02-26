@@ -117,7 +117,7 @@
         let clipboard = document.getElementById("clipboard").value
         let obj = {'data': clipboard};
 
-        const request = new Request("clipboard", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(obj)});
+        const request = new Request("{{ url_for('.clipboard') }}", {method: 'POST', headers: {'Content-Type': 'application/json'} ,body: JSON.stringify(obj)});
         fetch(request)
             .then(response => response.json())
             .then(function (items) {
