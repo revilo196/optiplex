@@ -1,10 +1,10 @@
 
 {% extends 'base_modal.html' %}
 
-{% block titlemodal %}Saved Production{% endblock %}
+{% block titlemodal %}Saved {{ name }}{% endblock %}
 {% block contentmodal %}
     <input class="form-control"  type="text" width="90%" readonly id="store_link" value="" onload="set_link()">
-    <p onload="set_link()"> use this link to load the production</p>
+    <p onload="set_link()"> use this link to load the {{ name }}</p>
     <script>
     function set_link() {
         let link = window.location.origin + "{{ url_for('.blueprint_load') }}?{{ url_code_str }}";

@@ -1,6 +1,7 @@
 import math
 import sqlite3
 
+reaction_gid = [436, 484, 661, 662, 977, 1888, 1889, 1890, 4097]  # SELECT id FROM groupIDs WHERE name LIKE "%Reaction%"
 
 def find_bp_from_product(db: sqlite3.Connection, p_id) -> int:
     bp_id = db.execute("""SELECT bp.id FROM blueprints AS bp WHERE product_typeID == ?""", [p_id]).fetchone()
@@ -77,7 +78,7 @@ class ProdBlueprint(object):
     def collect_blueprints(self, collected, i: int = 0):
 
         if self.id not in collected:
-            collected[self.id] = {'name': self.name, 'runs': 0, 'id': self.id}
+            collected[self.id] = {'name': self.name, 'runs': 0, 'id': self.id, 'me': self.me, 'num': self.product['num']}
 
         collected[self.id]['runs'] += self.runs
         collected[self.id]['depth'] = i
@@ -123,10 +124,18 @@ class ProdBlueprint(object):
                 collected = collected + m['bp'].collect_blueprints(i)
         return collected
 
+    def remove_bp(self, bp_id):
+        for m in self.materials:
+            if 'bp' in m:
+                if m['bp'].id == bp_id:
+                    m.pop('bp')  # remove bp from productions. also removes all sub-producitons
+                else:
+                    m['bp'].remove_bp(bp_id)  # recursive search
 
-def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1) -> ProdBlueprint:
+
+def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1, sta_me: float = 1.0) -> ProdBlueprint:
     c = db.cursor()
-    bp = c.execute("""SELECT blueprints.id, bpID.name
+    bp = c.execute("""SELECT blueprints.id, bpID.name, bpID.group_id
                         FROM blueprints
                         INNER JOIN typeIDs bpID on bpID.id = blueprints.id
                         WHERE blueprints.id = ? ;""", [bp_id]).fetchone()
@@ -148,7 +157,11 @@ def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1) 
         m_obj = {'id': m[0], 'gid': m[1], 'num': m[2], 'name': m[3], 'adju': m[4]}
         materials.append(m_obj)
 
-    return ProdBlueprint(bp[0], bp[1], product, materials, me, runs)
+    # block/reset me if blueprint is an reaction
+    if bp[2] in reaction_gid:
+        me = 1.0
+
+    return ProdBlueprint(bp[0], bp[1], product, materials, me+sta_me-1.0, runs)
 
 
 def from_dict(data) -> ProdBlueprint:

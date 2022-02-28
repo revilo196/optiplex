@@ -32,12 +32,26 @@
                      {% if 'blueprints' in  content %}
                      {% for bp in content['blueprints'] %}
 
-                        <div class="row">
-                            <div class="col-2"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
-                            <div class="col-5"> {{ bp['name'] }} </div>
-                            <div class="col-5">  X  {{ bp['runs'] }} </div>
-                        </div>
+                         <a class="text-body text-decoration-none"  data-bs-parent="#main_content" data-bs-toggle="collapse" href="#info_{{ bp['id'] }}" role="button" aria-expanded="false" aria-controls="info_{{ bp['id'] }}">
+                        <div class="row mt-1  rounded hover_light">
+                            <div class="col-2 d-flex align-items-center align-middle text-center"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
+                            <div class="col-5 d-flex align-items-center align-middle text-center"> {{ bp['name'] }} </div>
+                            <div class="col-5 d-flex align-items-center align-middle text-center">  X  {{ bp['runs'] }} </div>
 
+                        </div>
+                         </a>
+
+                         <div class="collapse" id="info_{{ bp['id'] }}" data-bs-parent="#main_content">
+                              <div class="card card-body " data-bs-parent="#main_content">
+                                  <div class="container-fluid">
+                                      <div class="row">
+                                          <div class="col d-flex align-items-center align-middle text-center">ME(all): {{ round_to_int((1.0-bp['me'])*100) }}</div>
+                                          <div class="col d-flex align-items-center align-middle text-center"> Products: {{ bp['runs']*bp['num'] }}</div>
+                                          <div class="col d-flex align-items-center align-middle text-center"><button class="btn btn-danger" onclick="del_bp_step('{{ bp['id'] }}')">Remove</button></div>
+                                      </div>
+                                  </div>
+                              </div>
+                        </div>
                      {% endfor %}
                      {% endif %}
 
@@ -89,11 +103,17 @@
 
                         {% if session['stock'] %}
                             {% for k, item in session['stock'].items() %}
-                                    <div class='row' style='height: 3.3em'> <div class='col-2 align-items-center' >
+                                <a class="text-body text-decoration-none"  data-bs-parent="#main_content" data-bs-toggle="collapse" href="#info_{{ item['id'] }}" role="button" aria-expanded="false" aria-controls="info_{{ item['id'] }}">
+                                    <div class=' row rounded hover_light' style='height: 3.3em'>
+                                        <div class='col-2 d-flex align-items-center' >
                                         <img class='stockImage' src="https://image.eveonline.com/Type/{{ item['id']}}_64.png" width='32' height='32' ></div>
-                                        <div class='col-6 stockName align-items-center'>{{ item['name'] }}</div>
-                                        <div class='col-4 stockCount align-items-center'>{{ item['count'] }}</div>
+                                        <div class='col-6 stockName d-flex align-items-center'>{{ item['name'] }}</div>
+                                        <div class='col-4 stockCount d-flex align-items-center'>{{ item['count'] }}</div>
                                     </div>
+                                </a>
+                                <div class="collapse" id="info_{{ item['id'] }}" data-bs-parent="#main_content">
+                                    <button class="btn btn-danger" onclick="del_stock('{{ item['id'] }}')">Remove</button>
+                                </div>
                             {% endfor %}
                         {% endif %}
 
@@ -101,8 +121,10 @@
                 
                 <div class="row mt-auto mb-3">
                     <div class="col-12"><textarea name="text" id="clipboard" class="form-control"></textarea></div>
-                   <div class="col-6"> <button class="btn btn-primary w-100" onclick="importClip()" >Add/Import</button></div>
-                   <div class="col-6">  <button class="btn btn-primary w-100" onclick="reset_stock()" >Reset</button></div>
+                   <div class="col-4"> <button class="btn btn-primary w-100" onclick="importClip()" >Add/Import</button></div>
+                   <div class="col-4">  <button class="btn btn-primary w-100" onclick="reset_stock()">Reset</button></div>
+                    <div class="col-4">  <button class="btn btn-primary w-100" onclick="save_stock()">Save</button></div>
+
                 </div>
                 </div>
              </div>
@@ -183,6 +205,16 @@
 
     }
 
+    function del_bp_step(bpid) {
+        fetch("{{ url_for('.lookup') }}" + "?rm=" + bpid )
+            .then(reload_page);
+    }
+
+    function del_stock(stock_id) {
+        fetch("{{ url_for('.stock_item') }}" +"?id=" + stock_id, {method:'DELETE'})
+            .then(reload_page);
+
+    }
     function reload_page() {
         window.location.href = "{{ url_for('.prod') }}";  // reload updated page
     }
@@ -194,7 +226,27 @@
     function close_modal() {
         document.querySelector('.modal').remove()
     }
-    
+
+    function save_stock() {
+        fetch("{{ url_for('.clipboard_save') }}")
+            .then(response => response.text())
+            .then(function (result) {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString( result, 'text/html' );
+                let div = document.createElement('div')
+                div.innerHTML = doc.getElementById('model-request-cont').innerHTML;
+                let newscript = div.getElementsByTagName("script")[0]
+                document.body.appendChild(div)
+                document.head.appendChild(newscript);
+                eval(newscript.innerText);
+                document.querySelector('.modal-success-btn').onclick = close_modal
+                let modal = new bootstrap.Modal(document.getElementById('modal-dialog'));
+                modal.show();
+
+            })
+
+    }
+
     function save() {
         fetch("{{ url_for('.blueprint_save') }}")
             .then(response => response.text())

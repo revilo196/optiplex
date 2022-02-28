@@ -4,6 +4,7 @@ import pickle
 import base64
 import zlib
 import hashlib
+import math
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, abort
 )
@@ -12,6 +13,12 @@ from optiplex.database import get_db
 import optiplex.production_model as model
 
 bp = Blueprint('production', __name__, url_prefix='/production')
+
+
+
+@bp.app_template_global()
+def round_to_int(x):
+    return int(round(x))
 
 
 def b64url_to_key(url_code):
@@ -82,7 +89,7 @@ def blueprint_save():
     db.execute("REPLACE INTO stored_production VALUES (?,?)", [key, pickle_production_compressed])
     db.commit()
 
-    return render_template('modal_saved.html', url_code_str="p="+url_code.decode('utf-8'))
+    return render_template('modal_saved.html', name="production", url_code_str="p="+url_code.decode('utf-8'))
 
 
 @bp.route('/load', methods=['GET'])
@@ -113,18 +120,25 @@ def blueprint_load():
 @bp.route('/lookup', methods=['GET'])
 def lookup():
     mat_id = request.args.getlist("id")
-    me = (100 - int(request.args.get("me"))) / 100
+    me = 1.0
+    if 'me' in request.args:
+        me = (100 - int(request.args.get("me"))) / 100
     db = get_db()
     bpo = session['production']
 
+    bp_rm_id = request.args.getlist('rm')
+
     for mid in mat_id:
         bpo.produce_material(db, int(mid), me=me)
+
+    for bp_id in bp_rm_id:
+        bpo.remove_bp(int(bp_id))
 
     session['production'] = bpo
     return {}
 
 
-@bp.route('/stock', methods=['POST', 'DELETE'])
+@bp.route('/stock', methods=['GET', 'POST', 'DELETE'])
 def clipboard():
     if request.method == 'POST':
         text = request.json['data']
@@ -153,7 +167,22 @@ def clipboard():
     if request.method == 'DELETE' and 'stock' in session:
         session.pop('stock')
 
+    if request.method == 'GET':
+        return session['stock']
+
     return {}
+
+
+@bp.route('/stock/item', methods=['DELETE'])
+def stock_item():
+    if request.method == 'DELETE' and 'stock' in session:
+        if 'id' in request.args:
+            itemId = int(request.args.get('id'))
+            if itemId in session['stock']:
+                session['stock'].pop(itemId)
+                return "OK"
+
+    return abort(400)
 
 
 @bp.route('/stock/save', methods=['GET'])
@@ -168,7 +197,7 @@ def clipboard_save():
     db.execute("REPLACE INTO stored_production VALUES (?,?)", [key, pickle_stock_compressed])
     db.commit()
 
-    return render_template('modal_saved.html', url_code_str="s="+url_code.decode('utf-8'))
+    return render_template('modal_saved.html', name="stock", url_code_str="s="+url_code.decode('utf-8'))
 
 
 @bp.route('/admin/save_example', methods=['GET'])
