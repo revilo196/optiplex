@@ -8,3 +8,4 @@ sympy~=1.9
 setuptools~=60.9.1
 redis~=4.1.4
 Flask-Session~=0.4.0
+uwsgi~=2.0.20

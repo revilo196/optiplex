@@ -10,9 +10,11 @@ app = create_app()
 def home():
     return render_template('home.html')
 
+
 @app.route('/legal')
 def legal():
     return render_template('legal.html')
+
 
 @app.route('/about')
 def about():

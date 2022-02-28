@@ -7,8 +7,20 @@ networks:
     external: false
 
 services:
- optiplex:
-    image: optiplex:latest
+  optiplex:
+    build: .
+    container_name: optiplex
+    restart: always
+    expose:
+      - 8080
+    environment:
+      - REDIS_HOST=redis_db
+      - SECRET_KEY=dev
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:latest
     restart: always
     labels:
       - "traefik.enable=true"
@@ -17,16 +29,16 @@ services:
       - "traefik.http.routers.optiplex.entrypoints=websecure"
       # Uncomment to enable HTTPS via ACME
       - "traefik.http.routers.optiplex.tls.certresolver=myresolver"
-    ports:
-      - 5000:5000
-    environment:
-      - REDIS_HOST=redis_db
-      - SECRET_KEY=dev
     networks:
       - web
       - internal
+    ports:
+      - 5000:80
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./optiplex/static:/static:ro
 
- redis_db:
+  redis_db:
     image: redis:latest
     restart: always
     networks:
