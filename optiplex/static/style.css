@@ -14,3 +14,16 @@
 .fulfilled {
     background: aquamarine;
 }
+.hover_light:hover {
+    background: rgba(0, 0, 0, 0.07);
+}
+
+#cb-cookie-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+    border-radius: 0;
+    display: none;
+  }
