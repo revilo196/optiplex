@@ -18,6 +18,9 @@ services:
       - SECRET_KEY=dev
     networks:
       - internal
+    # store db and other stuff outside the container (skip init-db in Dockerfile)
+    volumes:
+    - ./instance:/instance
 
   nginx:
     image: nginx:latest
