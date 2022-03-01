@@ -3,31 +3,60 @@ import sqlite3
 
 reaction_gid = [436, 484, 661, 662, 977, 1888, 1889, 1890, 4097]  # SELECT id FROM groupIDs WHERE name LIKE "%Reaction%"
 
+
 def find_bp_from_product(db: sqlite3.Connection, p_id) -> int:
     bp_id = db.execute("""SELECT bp.id FROM blueprints AS bp WHERE product_typeID == ?""", [p_id]).fetchone()
     return bp_id[0]
 
 
+def get_bp_group(db: sqlite3.Connection, bp_id: int):
+    gid = db.execute("""SELECT group_id FROM typeIDs WHERE id == ?""", [bp_id]).fetchone()
+    return gid[0]
+
+
+def calculate_final_me(station: int, rig: float, bp_me: int, sec: str, gid: int):
+    me = 1.0
+
+    if gid in reaction_gid:
+        if sec == 'Low':
+            me = me * ((100.0 - rig)/100.0)
+        elif sec == 'Null':
+            me = me * ((100.0 - (rig*1.1))/100.0)
+
+    else:
+        me = me * ((100.0 - bp_me) / 100.0)
+        me = me * ((100.0 - station) / 100)
+        if sec == 'Low':
+            me = me * ((100.0 - rig*1.9)/100.0)
+        elif sec == 'Null':
+            me = me * ((100.0 - (rig*2.1))/100.0)
+        else:
+            me = me * ((100.0 - rig)/100.0)
+
+    return me
+
+
 class ProdBlueprint(object):
 
-    def __init__(self, bp_id: int, name: str, product: dict, materials: list, me: float = 1.0, runs: int = 1):
+    def __init__(self, bp_id: int, name: str, product: dict, materials: list, me: float = 1.0, runs: int = 1, index: float = 5.0):
         self.id = bp_id
         self.name = name
         self.product = product
         self.materials = materials
         self.runs = runs
         self.me = me
+        self.index = index
 
-    def produce_material(self, db, mat_id: int, me: float = 1.0):
+    def produce_material(self, db, mat_id: int, me: float = 1.0, index: float = 5.0):
         for (i, m) in enumerate(self.materials):
             # recursive function if material is already produced
             if 'bp' in m:
-                m['bp'].produce_material(db, mat_id, me=me)
+                m['bp'].produce_material(db, mat_id, me=me, index=index)
             else:
                 if m['id'] == mat_id:
                     # replace type with Production
                     bp_id = find_bp_from_product(db, mat_id)
-                    pr = from_db(db, bp_id, me=me)
+                    pr = from_db(db, bp_id, me=me, index=index)
                     needed = int(math.ceil(m['num']*self.runs*self.me))
                     pr.runs = int(math.ceil(needed / pr.product['num']))
                     self.materials[i]['bp'] = pr
@@ -78,7 +107,7 @@ class ProdBlueprint(object):
     def collect_blueprints(self, collected, i: int = 0):
 
         if self.id not in collected:
-            collected[self.id] = {'name': self.name, 'runs': 0, 'id': self.id, 'me': self.me, 'num': self.product['num']}
+            collected[self.id] = {'name': self.name, 'runs': 0, 'id': self.id, 'me': self.me, 'num': self.product['num'], 'cost': self.job_cost()}
 
         collected[self.id]['runs'] += self.runs
         collected[self.id]['depth'] = i
@@ -132,8 +161,16 @@ class ProdBlueprint(object):
                 else:
                     m['bp'].remove_bp(bp_id)  # recursive search
 
+    def job_cost(self) -> float:
+        values = sum([m['num'] * self.runs * self.me * m['adju'] for m in self.materials])
+        cost = values*(self.index/100.0)
+        return cost
 
-def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1, sta_me: float = 1.0) -> ProdBlueprint:
+    def sum_job_costs(self) -> float:
+        return self.job_cost() + sum([m['bp'].sum_job_costs() for m in self.materials if 'bp' in m])
+
+
+def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1, index: float = 5.0) -> ProdBlueprint:
     c = db.cursor()
     bp = c.execute("""SELECT blueprints.id, bpID.name, bpID.group_id
                         FROM blueprints
@@ -157,11 +194,7 @@ def from_db(db: sqlite3.Connection, bp_id: int, me: float = 1.0, runs: int = 1, 
         m_obj = {'id': m[0], 'gid': m[1], 'num': m[2], 'name': m[3], 'adju': m[4]}
         materials.append(m_obj)
 
-    # block/reset me if blueprint is an reaction
-    if bp[2] in reaction_gid:
-        me = 1.0
-
-    return ProdBlueprint(bp[0], bp[1], product, materials, me+sta_me-1.0, runs)
+    return ProdBlueprint(bp[0], bp[1], product, materials, me, runs, index)
 
 
 def from_dict(data) -> ProdBlueprint:
@@ -169,6 +202,6 @@ def from_dict(data) -> ProdBlueprint:
         if 'bp' in m:
             data['materials'][k]['bp'] = from_dict(m['bp'])
 
-    return ProdBlueprint(data['id'], data['name'], data['product'], data['materials'], data['me'], data['runs'])
+    return ProdBlueprint(data['id'], data['name'], data['product'], data['materials'], data['me'], data['runs'], data['index'])
 
 

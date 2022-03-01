@@ -12,14 +12,39 @@
                 <datalist id="datalistOptions">
                 </datalist>
             </div>
+
             <div class="col-4"> 
                 <div class="row">
-                    <div class="col"> <label class="col-form-label">Runs:</label>  </div>
+                    <div class="col"> <label class="col-form-label" >Runs:</label>  </div>
                     <div class="col"> <input type="number" id="bp_runs" class="form-control" value="1"></div>
                     <div class="col"> <label class="col-form-label">ME Level:</label>  </div>
                     <div class="col"> <input type="number" id="bp_me" class="form-control" value="0">  </div>
-                </div>  
+                </div>
             </div>
+            </div>
+                <div class="row">
+                    <div class="col"> <label class="col-form-label" >Station:</label>  </div>
+                    <div class="col"> <select class="form-select" id="bp_sta" aria-label="select station">
+                          <option value="0" selected>NPC</option>
+                          <option value="1">Engineering Complex</option>
+                    </select> </div>
+                    <div class="col"> <label class="col-form-label" >Rig:</label>  </div>
+                    <div class="col"> <select class="form-select" id="bp_rig" aria-label="select rig">
+                          <option value="0" selected>None</option>
+                          <option value="2">T1</option>
+                          <option value="2.4">T2</option>
+                    </select> </div>
+                    <div class="col"> <label class="col-form-label" >Sec:</label>  </div>
+                    <div class="col"> <select class="form-select" id="bp_sec" aria-label="select rig">
+                          <option value="High" selected>High-Sec</option>
+                          <option value="Low">Low-Sec</option>
+                          <option value="Null">Null-Sec</option>
+                    </select> </div>
+                    <div class="col"> <label class="col-form-label" >Cost Index:</label>  </div>
+                    <div class="col"> <input type="number" step="0.01" id="bp_cost_index" class="form-control" value="1.05" /> </div>
+
+                </div>
+
         </div>
         </div>
         <hr>
@@ -33,7 +58,7 @@
                      {% for bp in content['blueprints'] %}
 
                          <a class="text-body text-decoration-none"  data-bs-parent="#main_content" data-bs-toggle="collapse" href="#info_{{ bp['id'] }}" role="button" aria-expanded="false" aria-controls="info_{{ bp['id'] }}">
-                        <div class="row mt-1  rounded hover_light">
+                        <div class="row mt-1 {% if bp['runs'] ==  0 %} fulfilled {% endif %} rounded hover_light">
                             <div class="col-2 d-flex align-items-center align-middle text-center"><img src="https://image.eveonline.com/Type/{{ bp['id'] }}_32.png" width="32" height="32" ></div>
                             <div class="col-5 d-flex align-items-center align-middle text-center"> {{ bp['name'] }} </div>
                             <div class="col-5 d-flex align-items-center align-middle text-center">  X  {{ bp['runs'] }} </div>
@@ -47,6 +72,7 @@
                                       <div class="row">
                                           <div class="col d-flex align-items-center align-middle text-center">ME(all): {{ round_to_int((1.0-bp['me'])*100) }}</div>
                                           <div class="col d-flex align-items-center align-middle text-center"> Products: {{ bp['runs']*bp['num'] }}</div>
+                                          <div class="col d-flex align-items-center align-middle text-center"> Job: {{ isk_format( bp['cost'] ) }}</div>
                                           <div class="col d-flex align-items-center align-middle text-center"><button class="btn btn-danger" onclick="del_bp_step('{{ bp['id'] }}')">Remove</button></div>
                                       </div>
                                   </div>
@@ -56,7 +82,9 @@
                      {% endif %}
 
                  <div class="row mt-auto mb-3">
-                      <div class="col-6"> <button class="btn btn-primary w-100" onclick="save()" >Save</button></div>
+                      <div class="col-12"> <button class="btn btn-primary w-100" onclick="save()" >Save</button></div>
+                     <div class="col-12"> Total Job-Costs: {{ isk_format(total_job_cost) }} </div>
+                     <div class="col-12"> Remaining Job-Costs: {{ isk_format(remaining_job_cost) }} </div>
                  </div>
                 </div>
              </div>
@@ -86,14 +114,41 @@
                         <div class="row"> 
                             <hr>
                             </div>
-
                         <div class="row mt-auto mb-3">
-                            <div class="col-2"><input type="number" id="mat_me" class="form-control" value="10"></div>
-                           <div class="col-6"> <button class="btn btn-primary w-100" onclick="lookup()" >Add Production</button></div>
-                            <div class="col-4"> <button class="btn btn-primary w-100" onclick="reload_page()" >Update</button></div>
+                                <div class="container-fluid">
+                                <div class="row mt-auto mb-3">
+                        <div class="col-auto"> <label class="col-form-label" >Station:</label>  </div>
+                        <div class="col-auto"> <select class="form-select" id="mat_sta" aria-label="select station">
+                              <option value="0" selected>NPC</option>
+                              <option value="1">E-Complex</option>
+                              <option value="0">Other</option>
+                        </select> </div>
+                        <div class="col-auto"> <select class="form-select" id="mat_rig" aria-label="select rig">
+                              <option value="0" selected>None</option>
+                              <option value="2">T1</option>
+                              <option value="2.4">T2</option>
+                        </select> </div>
+                        <div class="col-auto"> <label class="col-form-label" >Sec:</label>  </div>
+                        <div class="col-auto"> <select class="form-select" id="mat_sec" aria-label="select rig">
+                              <option value="High" selected>High</option>
+                              <option value="Low">Low</option>
+                              <option value="Null">Null</option>
+                        </select> </div>
+                        <div class="col-auto"> <label class="col-form-label" >Index:</label>  </div>
+                        <div class="col-auto"> <input type="number" step="0.01" id="mat_cost_index" value="1.05" class="form-control" style="width: 6rem" /> </div>
 
-                        </div>
+                            </div>
+                                <div class="row">
+                                    <div class="col-auto"> <label class="col-form-label" >ME:</label>  </div>
+                                     <div class="col-2"><input type="number"  class="form-control" id="mat_me" > </div>
+                                         <div class="col"> <button class="btn btn-primary w-100" onclick="lookup()" >Add Production</button></div>
+                                <div class="col-2"> <button class="btn btn-primary w-100" onclick="reload_page()" >Update</button></div>
+                            </div>
+                            </div>
                     </div>
+
+                    </div>
+
                 </div>
              <div class="col-3">
                 <div class="container-fluid d-flex flex-column h-100" >
@@ -117,7 +172,9 @@
                             {% endfor %}
                         {% endif %}
 
-                    </div></div></div>
+                    </div>
+                    </div>
+                    </div>
                 
                 <div class="row mt-auto mb-3">
                     <div class="col-12"><textarea name="text" id="clipboard" class="form-control"></textarea></div>
@@ -182,6 +239,11 @@
         params.append('id', select.children[0].bp_id.toString())
         params.append('runs', document.getElementById('bp_runs').value)
         params.append('me', document.getElementById('bp_me').value)
+        params.append('sta', document.getElementById('bp_sta').value)
+        params.append('rig', document.getElementById('bp_rig').value)
+        params.append('sec', document.getElementById('bp_sec').value)
+        params.append('index', document.getElementById('bp_cost_index').value)
+
 
         console.log(select.children[0].bp_id)
         fetch("blueprint?" + params.toString() )
@@ -200,6 +262,10 @@
         }
 
         params.append('me', document.getElementById('mat_me').value)
+        params.append('sta', document.getElementById('mat_sta').value)
+        params.append('rig', document.getElementById('mat_rig').value)
+        params.append('sec', document.getElementById('mat_sec').value)
+        params.append('index', document.getElementById('mat_cost_index').value)
         fetch("lookup?" + params.toString())
             .then(reload_page);
 
