@@ -10,7 +10,7 @@ RUN pip3 install -r requirements.txt
 COPY ./optiplex /optiplex
 
 # create database
-# RUN python3 -m flask init-db
+RUN python3 -m flask init-db
 
 CMD ["uwsgi", "optiplex.ini"]
 # CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
