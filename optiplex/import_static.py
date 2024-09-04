@@ -14,7 +14,7 @@ def create_tables(con: sqlite3.Connection):
 
 def load_groups(con: sqlite3.Connection):
     c = con.cursor()
-    with open(import_path + 'groupIDs.yaml', 'r') as file:
+    with open(import_path + 'groups.yaml', 'r') as file:
         print("groupIDs -- file_opened -- starting reading")
         groups_db = yaml.load(file, Loader=yaml.CLoader)
         print("done loading")
@@ -48,7 +48,7 @@ def load_graphics(con: sqlite3.Connection):
 
 def load_types(con):
     c = con.cursor()
-    with open(import_path + 'typeIDs.yaml', 'r') as file:
+    with open(import_path + 'types.yaml', 'r') as file:
         print("types -- file_opened -- starting reading")
         types_db = yaml.load(file, Loader=yaml.CLoader)
         print("done loading")
