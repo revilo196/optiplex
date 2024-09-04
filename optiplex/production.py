@@ -43,7 +43,7 @@ def prod():
     total_job_cost = 0
     remaining_job_cost = 0
     if 'production' in session:
-        production = copy.deepcopy(session['production'])  # dont change the main object
+        production = copy.deepcopy(pickle.loads(session['production']))  # dont change the main object
         total_job_cost = production.sum_job_costs()
         if 'stock' in session:
             stock = copy.deepcopy(session['stock'])
@@ -88,7 +88,7 @@ def blueprint():
     db = get_db()
     final_me = model.calculate_final_me(station, rig, me, sec, model.get_bp_group(db, bp_id))
     bpo = model.from_db(db, bp_id, final_me, runs, index)
-    session['production'] = bpo
+    session['production'] = pickle.dumps(bpo)
     return {}
 
 
@@ -107,7 +107,7 @@ def store_object(db, obj) -> bytes:
 @bp.route('/blueprint/save', methods=['GET'])
 def blueprint_save():
     db = get_db()
-    url_code = store_object(db, session['production'])
+    url_code = store_object(db, pickle.loads(session['production']))
 
     return render_template('modal_saved.html', name="production", url_code_str="p="+url_code.decode('utf-8'))
 
@@ -126,7 +126,7 @@ def blueprint_load():
 
     if 'p' in request.args:
         url_code = request.args.get("p")
-        session['production'] = load_obj(db, url_code)
+        session['production'] = pickle.dumps(load_obj(db, url_code))
 
     if 's' in request.args:
         url_code = request.args.get("s")
@@ -158,7 +158,7 @@ def lookup():
         index = float(request.args.get("index"))
 
     db = get_db()
-    bpo = session['production']
+    bpo =  pickle.loads(session['production'])
 
     for mid in mat_id:
         bp_id = model.find_bp_from_product(db, mid)
@@ -168,7 +168,8 @@ def lookup():
     for bp_id in bp_rm_id:
         bpo.remove_bp(int(bp_id))
 
-    session['production'] = bpo
+    print(bpo.to_json())
+    session['production'] = pickle.dumps(bpo)
     return {}
 
 
